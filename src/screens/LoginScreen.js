@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, View } from 'react-native'
+import { Button, View, StyleSheet, Text } from 'react-native'
 
 function LoginScreen({navigation}) {
   return (
@@ -9,7 +9,7 @@ function LoginScreen({navigation}) {
       </Text>
       <Button
         title='go to chats'
-        onPress={()=> navigation.navigate("chatList")} />
+        onPress={()=> navigation.navigate("ChatList")} />
     </View>
   )
 }
