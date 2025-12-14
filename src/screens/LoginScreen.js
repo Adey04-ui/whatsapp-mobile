@@ -1,13 +1,26 @@
 import React, { useState } from 'react'
-import { Button, View, StyleSheet, Text, Platform, TouchableOpacity } from 'react-native'
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Button, View, StyleSheet, Text, Platform, TouchableOpacity, Image } from 'react-native'
 import { KeyboardAvoidingView, TextInput } from 'react-native'
+import logo from '../assets/logo.png'
+import useLogin from '../hooks/useLogin'
+import { ActivityIndicator } from 'react-native'
 
 function LoginScreen({navigation}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const handleLogin = () => {
+  const { mutate: login, isPending, error } = useLogin()
 
+  const handleLogin = () => {
+    login(
+      { email, password },
+      {
+        onSuccess: () => {
+          navigation.replace('ChatList')
+        },
+      }
+    )
   }
   return (
     <KeyboardAvoidingView 
@@ -16,32 +29,62 @@ function LoginScreen({navigation}) {
     >
       <View style={styles.loginContainer}>
         <Text style={styles.title}>
+          <Image source={logo} style={styles.logo} />&nbsp;
           Whatsapp
         </Text>
-        <TextInput
-          placeholder='Email'
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize='none'
-        />
+        <Text style={styles.title2}>
+          Sign-In
+        </Text>
+        <View>
+          <Text style={styles.label}>
+            <FontAwesome name='envelope' size={22} color='#9f9f9f' />
+          </Text>
+          <TextInput
+            placeholder='Email'
+            style={styles.input}
+            value={email}
+            placeholderTextColor={'#9f9f9f'}
+            onChangeText={setEmail}
+            autoCapitalize='none'
+          />
+        </View>
+        <View>
+          <Text style={styles.label}>
+            <FontAwesome name='eye' size={22} color='#9f9f9f' />
+          </Text>
+          <TextInput
+            placeholder="Password"
+            style={styles.input}
+            value={password}
+            placeholderTextColor={'#9f9f9f'}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
 
-        <TextInput
-          placeholder="Password"
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.button}
           onPress={handleLogin}
+          disabled={isPending}
         >
-          <Text style={styles.buttonText}>
-            Login
-          </Text>
+          {isPending ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Sign In</Text>
+          )}
         </TouchableOpacity>
+
+        <View style={styles.message1}>
+          <Text style={styles.message2}>
+            Don't have an account?. 
+            <Text
+             onPress={() => navigation.navigate("register")}
+             style={{color: '#295d42'}}
+            >
+              Create one
+            </Text>
+          </Text>
+        </View>
       </View>
     </KeyboardAvoidingView>
   )
@@ -57,24 +100,31 @@ function LoginScreen({navigation}) {
       color: '#9f9f9f',
     },
     title: {
-      fontSize: 24,
-      marginBottom: 20,
+      marginBottom: 10,
       color: '#0d8446',
-      fontWeight: 'condensedBold',
-      fontSize: 29,
+      fontSize: 20,
+      display: 'flex',
+      textAlign: 'right',
+    },
+    title2: {
+      fontSize: 24,
+      marginBottom: 10,
+      color: '#0d8446',
+      display: 'flex',
     },
     loginContainer: {
       backgroundColor: '#2c2c2c',
       padding: 20,
       borderRadius: 10,
       boxShadow: '0px 10px 20px #00000033',
-      width: '87%',
-      color: '#9f9f9f'
+      width: '94%',
+      color: '#9f9f9f',
     },
     input: {
       backgroundColor: '#383838',
       marginVertical: 10,
-      padding: 7,
+      padding: 9,
+      paddingLeft: 36,
       borderRadius: 5,
       color: '#ffffff',
       fontSize: 16,
@@ -87,12 +137,34 @@ function LoginScreen({navigation}) {
       backgroundColor: '#295d42',
       padding: 8,
       borderRadius: 5,
-      marginTop: 10,
+      marginTop: 17,
     },
     buttonText: {
       color: '#fff',
       fontSize: 18,
-    }
+    },
+    label: {
+      position: 'absolute',
+      top: 18,
+      left: 8,
+      zIndex: 1,
+    },
+    message1: {
+      marginVertical: 30,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    message2: {
+      color: '#9f9f9f',
+      fontSize: 18,
+    },
+    logo: {
+      height: 15,
+      width: 15,
+      resizeMode: 'contain',
+      marginBottom: 10,
+    },
   })
 
 export default LoginScreen
