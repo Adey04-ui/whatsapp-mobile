@@ -4,12 +4,12 @@ import { storeTokens } from "../app/tokenStore.js"
 import Toast from "react-native-toast-message"
 
 const loginRequest = async ({ email, password }) => {
-  const res = await instance.post("/users/login", { email, password });
-  return res.data;
-};
+  const res = await instance.post("/users/login", { email, password })
+  return res.data
+}
 
 export default function useLogin() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: loginRequest,
@@ -18,14 +18,18 @@ export default function useLogin() {
       await storeTokens({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
-      });
+      })
 
       queryClient.setQueryData(["me"], {
         _id: data._id,
         name: data.name,
         email: data.email,
         profilePic: data.profilePic,
-      });
+      })
+      Toast.show({
+        type: "success",
+        text1: `Welcome ${data.name}`,
+      })
     },
     onError: (error) => {
       const message =
@@ -38,6 +42,7 @@ export default function useLogin() {
         text1: "Login Error",
         text2: message,
       })
+      console.log("Login error:", error)
     },
-  });
+  })
 }

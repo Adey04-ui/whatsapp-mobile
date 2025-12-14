@@ -9,11 +9,13 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  ScrollView,
 } from "react-native"
 import FontAwesome from "@expo/vector-icons/FontAwesome"
 import * as ImagePicker from "expo-image-picker"
 import useRegister from "../hooks/useRegister"
 import Toast from "react-native-toast-message"
+import logo from '../assets/logo.png'
 
 function RegisterScreen({ navigation }) {
   const [name, setName] = useState("")
@@ -24,10 +26,15 @@ function RegisterScreen({ navigation }) {
 
   const { mutate: register, isPending } = useRegister()
 
+  
   const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permission.granted) return
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
+      aspect: [1, 1],
       quality: 0.7,
     })
 
@@ -65,92 +72,119 @@ function RegisterScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "padding"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
     >
-      <View style={styles.registerContainer}>
-        <Text style={styles.title}>Create Account</Text>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: "#202020" }}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.registerContainer2}>
+          <View style={styles.registerContainer}>
+            <Text style={styles.title}>
+              <Image source={logo} style={styles.logo} />
+            </Text>
+            <Text style={styles.title2}>Create Account</Text>
 
-        <View>
-          <Text style={styles.label}>
-            <FontAwesome name="user" size={22} color="#9f9f9f" />
-          </Text>
-          <TextInput
-            placeholder="Name"
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholderTextColor="#9f9f9f"
-          />
+            
+            <View style={styles.imageContainer}>
+              {profilePic ? (
+                <Image
+                  source={{ uri: profilePic.uri }}
+                  style={styles.imagePreview}
+                />
+              ) : (
+                <View style={styles.placeholder}>
+                  <Text style={{ color: "#9f9f9f" }}>Profile picture</Text>
+                </View>
+              )}
+
+              <TouchableOpacity onPress={pickImage} style={styles.imageButton}>
+                <Text style={styles.imageButtonText}>
+                  {profilePic ? "Change Image" : "Select Image"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View>
+              <Text style={styles.label}>
+                <FontAwesome name="user" size={22} color="#9f9f9f" />
+              </Text>
+              <TextInput
+                placeholder="Name"
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholderTextColor="#9f9f9f"
+              />
+            </View>
+
+            <View>
+              <Text style={styles.label}>
+                <FontAwesome name="envelope" size={22} color="#9f9f9f" />
+              </Text>
+              <TextInput
+                placeholder="Email"
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                placeholderTextColor="#9f9f9f"
+              />
+            </View>
+
+            <View>
+              <Text style={styles.label}>
+                <FontAwesome name="phone" size={22} color="#9f9f9f" />
+              </Text>
+              <TextInput
+                placeholder="Phone"
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                autoCapitalize="none"
+                placeholderTextColor="#9f9f9f"
+              />
+            </View>
+
+            <View>
+              <Text style={styles.label}>
+                <FontAwesome name="lock" size={22} color="#9f9f9f" />
+              </Text>
+              <TextInput
+                placeholder="Password"
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                placeholderTextColor="#9f9f9f"
+              />
+            </View>
+
+            <TouchableOpacity style={styles.button} onPress={handleRegister}>
+              <Text style={styles.buttonText}>
+                {isPending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  "Sign Up"
+                )}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.switchText}>
+              Already have an account?{" "}
+              <Text
+                style={{ color: "#295d42" }}
+                onPress={() => navigation.goBack()}
+              >
+                Sign In
+              </Text>
+            </Text>
+          </View>
         </View>
-
-        <View>
-          <Text style={styles.label}>
-            <FontAwesome name="envelope" size={22} color="#9f9f9f" />
-          </Text>
-          <TextInput
-            placeholder="Email"
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            placeholderTextColor="#9f9f9f"
-          />
-        </View>
-
-        <View>
-          <Text style={styles.label}>
-            <FontAwesome name="phone" size={22} color="#9f9f9f" />
-          </Text>
-          <TextInput
-            placeholder="Phone"
-            style={styles.input}
-            value={phone}
-            onChangeText={setPhone}
-            autoCapitalize="none"
-            placeholderTextColor="#9f9f9f"
-          />
-        </View>
-
-        <View>
-          <Text style={styles.label}>
-            <FontAwesome name="lock" size={22} color="#9f9f9f" />
-          </Text>
-          <TextInput
-            placeholder="Password"
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholderTextColor="#9f9f9f"
-          />
-        </View>
-
-        <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
-          <Text style={{ color: "#fff" }}>
-            {profilePic ? "Change Profile Picture" : "Pick Profile Picture"}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>
-            {isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              "Sign Up"
-            )}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.switchText}>
-          Already have an account?{" "}
-          <Text
-            style={{ color: "#295d42" }}
-            onPress={() => navigation.goBack()}
-          >
-            Sign In
-          </Text>
-        </Text>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
@@ -167,10 +201,22 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
   },
+  registerContainer2: {
+    flex: 1,
+    justifyContent: "center",
+  },
   title: {
+      marginBottom: 10,
+      color: '#0d8446',
+      fontSize: 20,
+      display: 'flex',
+      textAlign: 'right',
+    },
+  title2: {
     fontSize: 24,
-    marginBottom: 15,
-    color: "#0d8446",
+    marginBottom: 10,
+    color: '#0d8446',
+    display: 'flex',
   },
   input: {
     backgroundColor: "#383838",
@@ -209,6 +255,45 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: "#9f9f9f",
     textAlign: "center",
+    fontSize: 18,
+  },
+  imageContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  imagePreview: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    marginBottom: 10,
+  },
+  placeholder: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: "#383838",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  imageButton: {
+    backgroundColor: "#295d42",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 5,
+  },
+  imageButtonText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+  logo: {
+    height: 18,
+    width: 18,
+    resizeMode: 'contain',
+    marginBottom: 10,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
 })
 

@@ -1,8 +1,8 @@
-import React from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import React from "react"
+import { View, Text, Button, StyleSheet } from "react-native"
 
 export default function ChatScreen({ route, navigation }) {
-  const { chatId } = route.params;
+  const { chatId } = route.params
 
   return (
     <View style={styles.container}>
@@ -10,7 +10,7 @@ export default function ChatScreen({ route, navigation }) {
 
       <Button title="Back" onPress={() => navigation.goBack()} />
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -22,4 +22,4 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
   },
-});
+})

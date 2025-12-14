@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import FontAwesome from '@expo/vector-icons/FontAwesome'
 import { Button, View, StyleSheet, Text, Platform, TouchableOpacity, Image } from 'react-native'
 import { KeyboardAvoidingView, TextInput } from 'react-native'
 import logo from '../assets/logo.png'
 import useLogin from '../hooks/useLogin'
 import { ActivityIndicator } from 'react-native'
 
-function LoginScreen({navigation}) {
+function LoginScreen({navigation, setUser}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -16,8 +16,8 @@ function LoginScreen({navigation}) {
     login(
       { email, password },
       {
-        onSuccess: () => {
-          navigation.replace('ChatList')
+        onSuccess: (data) => {
+          setUser(data)
         },
       }
     )
@@ -29,8 +29,7 @@ function LoginScreen({navigation}) {
     >
       <View style={styles.loginContainer}>
         <Text style={styles.title}>
-          <Image source={logo} style={styles.logo} />&nbsp;
-          Whatsapp
+          <Image source={logo} style={styles.logo} />
         </Text>
         <Text style={styles.title2}>
           Sign-In
@@ -78,7 +77,7 @@ function LoginScreen({navigation}) {
           <Text style={styles.message2}>
             Don't have an account?. 
             <Text
-             onPress={() => navigation.navigate("register")}
+             onPress={() => navigation.navigate("Register")}
              style={{color: '#295d42'}}
             >
               Create one
@@ -96,7 +95,6 @@ function LoginScreen({navigation}) {
       justifyContent: 'center',
       backgroundColor: '#202020',
       paddingHorizontal: 25,
-      alignItems: 'center',
       color: '#9f9f9f',
     },
     title: {
@@ -160,8 +158,8 @@ function LoginScreen({navigation}) {
       fontSize: 18,
     },
     logo: {
-      height: 15,
-      width: 15,
+      height: 18,
+      width: 18,
       resizeMode: 'contain',
       marginBottom: 10,
     },
