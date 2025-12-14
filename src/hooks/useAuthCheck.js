@@ -25,7 +25,9 @@ const useAuthCheck = () => {
   const refreshTokens = async () => {
     try {
       const refreshToken = await getRefreshToken()
-      if (!refreshToken) return null
+      if (!refreshToken) {
+        throw new Error("No refresh token")
+      }
 
       const res = await axios.post(
         "/users/refresh",
@@ -48,10 +50,10 @@ const useAuthCheck = () => {
 
     } catch (err) {
       console.log("Refresh failed:", err.response?.data)
-      await removeTokens() // Clear all tokens
-      queryClient.removeQueries(["authUser"])
+      await removeTokens() 
+      queryClient.setQueryData(["authUser"], null)
       console.log("Tokens removed due to failed refresh.")
-      return null
+      throw err
     }
   }
 
@@ -60,7 +62,7 @@ const useAuthCheck = () => {
     queryKey: ["authUser"],
     queryFn: fetchUser,
     retry: false,
-    staleTime: 1000 * 60 * 10,
+    staleTime: Infinity,
   })
 
   return { user, isLoading, isError, refetch }

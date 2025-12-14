@@ -86,7 +86,7 @@ function RegisterScreen({ navigation }) {
             <Text style={styles.title}>
               <Image source={logo} style={styles.logo} />
             </Text>
-            <Text style={styles.title2}>Create Account</Text>
+            <Text style={styles.title2}>Sign-up</Text>
 
             
             <View style={styles.imageContainer}>

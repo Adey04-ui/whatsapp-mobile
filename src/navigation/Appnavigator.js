@@ -19,8 +19,8 @@ export default function AppNavigator() {
 
   // Check if user is logged in on app start
   useEffect(() => {
-    userData && setUser(userData)
-  }, [])
+    setUser(userData ?? null)
+  }, [userData])
 
   if (isLoading) return null // or a loading spinner
 

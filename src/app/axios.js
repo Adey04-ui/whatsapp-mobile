@@ -1,5 +1,5 @@
 import axios from "axios"
-import * as SecureStore from "expo-secure-store"
+import { getAccessToken } from "./tokenStore"
 
 const instance = axios.create({
   baseURL: "https://mock-backend-mjwh.onrender.com/api",
@@ -8,7 +8,7 @@ const instance = axios.create({
 
 // Add access token to every request if available
 instance.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync("accessToken")
+  const token = await getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
