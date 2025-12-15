@@ -14,32 +14,28 @@ import useAuthCheck from "../hooks/useAuthCheck"
 const Stack = createNativeStackNavigator()
 
 export default function AppNavigator() {
-  const [user, setUser] = useState(null)
-  const { user: userData, isLoading } = useAuthCheck()
+  const { user, isLoading } = useAuthCheck()
 
-  // Check if user is logged in on app start
-  useEffect(() => {
-    setUser(userData ?? null)
-  }, [userData])
-
+  console.log("AppNavigator user:", user)
   if (isLoading) return null // or a loading spinner
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false,
+        animation: "slide_from_right",
+        animationDuration: 50,
+       }}>
         {user ? (
           <>
             <Stack.Screen name="ChatList">
-              {props => <ChatListScreen {...props} user={user} setUser={setUser} />}
+              {props => <ChatListScreen {...props} user={user} />}
             </Stack.Screen>
             <Stack.Screen name="Chat" component={ChatScreen} />
             <Stack.Screen name="NewChat" component={NewChatScreen} />
           </>
         ) : (
           <>
-            <Stack.Screen name="Login">
-              {props => <LoginScreen {...props} setUser={setUser} />}
-            </Stack.Screen>
+            <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
           </>
         )}

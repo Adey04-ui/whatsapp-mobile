@@ -1,39 +1,38 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import axios from '../app/axios.js'
-import { storeTokens, getRefreshToken, removeTokens } from "../app/tokenStore.js"
+import { storeTokens, getAccessToken, getRefreshToken, removeTokens } from "../app/tokenStore.js"
 
 const useAuthCheck = () => {
   const queryClient = useQueryClient()
 
-  // === AUTH CHECK REQUEST ===
   const fetchUser = async () => {
+    const token = await getAccessToken()
+    if (!token) {
+      // No token → logged out
+      delete axios.defaults.headers.common["Authorization"]
+      queryClient.setQueryData(["authUser"], null)
+      return null
+    }
+
     try {
-      const res = await axios.get("/users/me", { withCredentials: true })
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
+      const res = await axios.get("/users/me")
       return res.data
     } catch (err) {
-      // If access token expired
       if (err.response?.status === 401) {
         // Try refresh
-        const refreshedUser = await refreshTokens()
-        return refreshedUser
+        return await refreshTokens()
       }
       throw err
     }
   }
 
-  // === REFRESH TOKEN REQUEST ===
   const refreshTokens = async () => {
     try {
       const refreshToken = await getRefreshToken()
-      if (!refreshToken) {
-        throw new Error("No refresh token")
-      }
+      if (!refreshToken) throw new Error("No refresh token")
 
-      const res = await axios.post(
-        "/users/refresh",
-        { refreshToken },
-        { withCredentials: true }
-      )
+      const res = await axios.post("/users/refresh", { refreshToken })
 
       // Store new tokens
       await storeTokens({
@@ -41,28 +40,25 @@ const useAuthCheck = () => {
         refreshToken: res.data.refreshToken ?? refreshToken
       })
 
-      // Update axios default header
       axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.accessToken}`
 
-      // Fetch user again with new access token
-      const me = await axios.get("/users/me", { withCredentials: true })
+      const me = await axios.get("/users/me")
       return me.data
-
     } catch (err) {
-      console.log("Refresh failed:", err.response?.data)
-      await removeTokens() 
+      // Refresh failed → logout
+      await removeTokens()
+      delete axios.defaults.headers.common["Authorization"]
       queryClient.setQueryData(["authUser"], null)
-      console.log("Tokens removed due to failed refresh.")
-      throw err
+      return null
     }
   }
 
-  // === REACT QUERY HOOK ===
   const { data: user, isLoading, isError, refetch } = useQuery({
     queryKey: ["authUser"],
     queryFn: fetchUser,
     retry: false,
     staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   return { user, isLoading, isError, refetch }

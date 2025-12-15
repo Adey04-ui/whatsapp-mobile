@@ -14,12 +14,7 @@ function LoginScreen({navigation, setUser}) {
 
   const handleLogin = () => {
     login(
-      { email, password },
-      {
-        onSuccess: (data) => {
-          setUser(data)
-        },
-      }
+      { email, password }
     )
   }
   return (

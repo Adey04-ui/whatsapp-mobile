@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import instance from "../app/axios.js"
 import { storeTokens } from "../app/tokenStore.js"
-import Toast from "react-native-toast-message"
+import { showMessage } from "react-native-flash-message"
 
 const loginRequest = async ({ email, password }) => {
   const res = await instance.post("/users/login", { email, password })
@@ -19,16 +19,26 @@ export default function useLogin() {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
       })
+      console.log({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      })
 
-      queryClient.setQueryData(["me"], {
+      queryClient.setQueryData(["authUser"], {
         _id: data._id,
         name: data.name,
         email: data.email,
         profilePic: data.profilePic,
       })
-      Toast.show({
-        type: "success",
-        text1: `Welcome ${data.name}`,
+      showMessage({
+        message: `welcome ${data.name}`,
+        description: "Logged in.",
+        backgroundColor: "#0d8446",
+        color: "#fff",
+        style: {
+        marginTop: 40,
+        borderRadius: 12,
+        },
       })
     },
     onError: (error) => {
@@ -37,10 +47,15 @@ export default function useLogin() {
         error?.message ??
         "Login failed"
 
-      Toast.show({
-        type: "error",
-        text1: "Login Error",
-        text2: message,
+      showMessage({
+        message: message,
+        description: "Error.",
+        backgroundColor: "#0d8446",
+        color: "#fff",
+        style: {
+        marginTop: 40,
+        borderRadius: 12,
+        },
       })
       console.log("Login error:", error)
     },

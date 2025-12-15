@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import api from "../app/axios"
-import { removeTokens } from "../app/tokenStore"
-import Toast from "react-native-toast-message"
+import { removeTokens, getRefreshToken } from "../app/tokenStore"
+import { showMessage } from "react-native-flash-message"
 
 const logoutRequest = async () => {
-  await api.post("/users/logout")
+  const refreshToken = await getRefreshToken()
+  await api.post("/users/logout", { refreshToken })
 }
 
 export default function useLogout() {
@@ -13,14 +14,31 @@ export default function useLogout() {
   return useMutation({
     mutationFn: logoutRequest,
 
-    onSuccess: async (data) => {
-      const message = data?.message || "Logged out successfully"
+    onSuccess: async () => {
       await removeTokens()
-      queryClient.clear()
-      Toast.show({
-        type: "success",
-        text1: message,
+      delete api.defaults.headers.common["Authorization"]
+      queryClient.setQueryData(["authUser"], null)
+      queryClient.invalidateQueries(["authUser"])
+
+      showMessage({
+        message: "Logout Successful",
+        description: "Logged out.",
+        backgroundColor: "#0d8446",
+        color: "#fff",
+        style: {
+        marginTop: 40,
+        borderRadius: 12,
+        },
       })
+    },
+
+    onError: (error) => {
+      const message =
+        error?.response?.data?.message ??
+        error?.message ??
+        "Logout failed"
+
+      console.log("Logout error:", message)
     },
   })
 }

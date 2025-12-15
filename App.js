@@ -3,7 +3,7 @@ import AppNavigator from "./src/navigation/AppNavigator"
 import { QueryClientProvider } from "@tanstack/react-query"
 import useAuthCheck from "./src/hooks/useAuthCheck"
 import Loader from "./src/components/Loader"
-import Toast from "react-native-toast-message"
+import FlashMessage from "react-native-flash-message"
 
 function Root() {
   const { user, isLoading } = useAuthCheck()
@@ -17,7 +17,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Root />
-      <Toast />
+      <FlashMessage position="top" />
     </QueryClientProvider>
   )
 }
