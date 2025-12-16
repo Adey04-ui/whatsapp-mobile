@@ -118,6 +118,7 @@ function RegisterScreen({ navigation }) {
                 value={name}
                 onChangeText={setName}
                 placeholderTextColor="#9f9f9f"
+                cursorColor="#0d8446"
               />
             </View>
 
@@ -132,6 +133,7 @@ function RegisterScreen({ navigation }) {
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 placeholderTextColor="#9f9f9f"
+                cursorColor="#0d8446"
               />
             </View>
 
@@ -146,6 +148,7 @@ function RegisterScreen({ navigation }) {
                 onChangeText={setPhone}
                 autoCapitalize="none"
                 placeholderTextColor="#9f9f9f"
+                cursorColor="#0d8446"
               />
             </View>
 
@@ -160,6 +163,7 @@ function RegisterScreen({ navigation }) {
                 onChangeText={setPassword}
                 secureTextEntry
                 placeholderTextColor="#9f9f9f"
+                cursorColor="#0d8446"
               />
             </View>
 

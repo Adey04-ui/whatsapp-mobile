@@ -65,7 +65,7 @@ export default function ChatListScreen({ navigation, user }) {
   return (
     <View style={styles.container}>
       <View style={styles.topSection}>
-        <Text style={styles.title}>Chat</Text>
+        <Text style={styles.title}>Chats</Text>
         <View style={{display: 'flex', flexDirection: 'row', gap: 27,}}>
           <Text>
             <FontAwesome name='camera' size={26} color='#fff' style={{marginRight: 5,}} />
@@ -85,6 +85,7 @@ export default function ChatListScreen({ navigation, user }) {
           value={search}
           onChangeText={setSearch}
           placeholderTextColor="#9f9f9f"
+          cursorColor="#0d8446"
         />
       </View>
       <View style={{ flex: 1, marginTop: 10, }}>
@@ -98,7 +99,7 @@ export default function ChatListScreen({ navigation, user }) {
           data={sortedChats}
           keyExtractor={(item) => item._id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 10, paddingHorizontal: 5, }}
+          contentContainerStyle={{ paddingBottom: 50, paddingHorizontal: 5, }}
           ListEmptyComponent={
             !isLoading && (
               <Text style={{ color: "#fff", textAlign: "center", marginTop: 20 }}>

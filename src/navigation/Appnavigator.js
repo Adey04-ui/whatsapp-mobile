@@ -7,8 +7,6 @@ import RegisterScreen from "../screens/RegisterScreen"
 import ChatListScreen from "../screens/ChatListScreen"
 import ChatScreen from "../screens/ChatScreen"
 import NewChatScreen from "../screens/NewChatScreen"
-import { getAccessToken } from "../app/tokenStore"
-import api from "../app/axios"
 import useAuthCheck from "../hooks/useAuthCheck"
 
 const Stack = createNativeStackNavigator()
@@ -16,14 +14,17 @@ const Stack = createNativeStackNavigator()
 export default function AppNavigator() {
   const { user, isLoading } = useAuthCheck()
 
-  console.log("AppNavigator user:", user)
-  if (isLoading) return null // or a loading spinner
+  if (isLoading) return null
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false,
         animation: "slide_from_right",
         animationDuration: 50,
+        cardStyle: {
+          backgroundColor: "transparent",
+          detachPreviousScreen: false,
+        },
        }}>
         {user ? (
           <>
@@ -31,7 +32,9 @@ export default function AppNavigator() {
               {props => <ChatListScreen {...props} user={user} />}
             </Stack.Screen>
             <Stack.Screen name="Chat" component={ChatScreen} />
-            <Stack.Screen name="NewChat" component={NewChatScreen} />
+            <Stack.Screen name="NewChat">
+              {props => <NewChatScreen {...props} user={user} />}
+            </Stack.Screen>
           </>
         ) : (
           <>

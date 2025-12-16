@@ -40,6 +40,7 @@ function LoginScreen({navigation, setUser}) {
             placeholderTextColor={'#9f9f9f'}
             onChangeText={setEmail}
             autoCapitalize='none'
+            cursorColor="#0d8446"
           />
         </View>
         <View>
@@ -53,6 +54,7 @@ function LoginScreen({navigation, setUser}) {
             placeholderTextColor={'#9f9f9f'}
             onChangeText={setPassword}
             secureTextEntry
+            cursorColor="#0d8446"
           />
         </View>
 
