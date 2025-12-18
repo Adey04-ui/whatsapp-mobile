@@ -8,6 +8,7 @@ import ChatListScreen from "../screens/ChatListScreen"
 import ChatScreen from "../screens/ChatScreen"
 import NewChatScreen from "../screens/NewChatScreen"
 import useAuthCheck from "../hooks/useAuthCheck"
+import BottomTabs from "./BottomTabs"
 
 const Stack = createNativeStackNavigator()
 
@@ -26,20 +27,22 @@ export default function AppNavigator() {
           detachPreviousScreen: false,
         },
        }}>
-        {user ? (
-          <>
-            <Stack.Screen name="ChatList">
-              {props => <ChatListScreen {...props} user={user} />}
-            </Stack.Screen>
-            <Stack.Screen name="Chat" component={ChatScreen} />
-            <Stack.Screen name="NewChat">
-              {props => <NewChatScreen {...props} user={user} />}
-            </Stack.Screen>
-          </>
-        ) : (
+        {!user ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="MainTabs">
+              {() => <BottomTabs user={user} />}
+            </Stack.Screen>
+
+            <Stack.Screen name="Chat" component={ChatScreen} />
+            
+            <Stack.Screen name="NewChat">
+              {props => <NewChatScreen {...props} user={user} />}
+            </Stack.Screen>
           </>
         )}
       </Stack.Navigator>

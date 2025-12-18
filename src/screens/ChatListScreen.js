@@ -7,8 +7,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { ActivityIndicator } from "react-native"
 import instance from "../app/axios"
 import { initSocket, getSocket } from "../socket/socket"
+import { useNavigation } from "@react-navigation/native"
 
-export default function ChatListScreen({ navigation, user }) {
+export default function ChatListScreen({ user }) {
+  const navigation = useNavigation()
   const formatMessageTime = (timestamp) => {
     if (!timestamp) return ""
 
@@ -151,7 +153,7 @@ export default function ChatListScreen({ navigation, user }) {
           data={sortedChats}
           keyExtractor={(item) => item._id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 60, paddingHorizontal: 5, }}
+          contentContainerStyle={{ paddingBottom: 0, paddingHorizontal: 5, }}
           ListEmptyComponent={
             !isLoading && (
               <Text style={{ color: "#fff", textAlign: "center", marginTop: 20 }}>
@@ -229,40 +231,6 @@ export default function ChatListScreen({ navigation, user }) {
           {isPending ? "Logging out..." : "Logout"}
         </Text>
       </Pressable>
-      <View style={styles.navigationContainer}>
-        <View style={{alignItems: 'center', justifyContent: 'center', display: 'flex', width: '75'}}>
-          <Text style={styles.navindividualicon}>
-            <FontAwesome  name='comment' size={26} color='#fff' />
-          </Text>
-          <Text style={styles.navindividualtext}>
-            chats
-          </Text>
-        </View>
-        <View style={{alignItems: 'center', justifyContent: 'center', display: 'flex', width: '75'}}>
-          <Text style={styles.navindividualicon}>
-            <FontAwesome  name='comment' size={26} color='#fff' />
-          </Text>
-          <Text style={styles.navindividualtext}>
-            status
-          </Text>
-        </View>
-        <View style={{alignItems: 'center', justifyContent: 'center', display: 'flex', width: '75'}}>
-          <Text style={styles.navindividualicon}>
-            <FontAwesome  name='comment' size={26} color='#fff' />
-          </Text>
-          <Text style={styles.navindividualtext}>
-            communities
-          </Text>
-        </View>
-        <View style={{alignItems: 'center', justifyContent: 'center', display: 'flex', width: '75'}}>
-          <Text style={styles.navindividualicon}>
-            <FontAwesome  name='phone' size={26} color='#fff' />
-          </Text>
-          <Text style={styles.navindividualtext}>
-            calls
-          </Text>
-        </View>
-      </View>
     </View>
   )
 }
@@ -387,7 +355,7 @@ const styles = StyleSheet.create({
   },
   newChat: {
     position: 'absolute',
-    bottom: 110,
+    bottom: 40,
     right: 20,
     height: 60,
     width: 60,
@@ -400,7 +368,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     position: 'absolute',
-    bottom: 110,
+    bottom: 40,
     left: 20,
     height: 60,
     width: 60,
