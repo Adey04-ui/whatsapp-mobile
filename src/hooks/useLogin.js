@@ -19,10 +19,6 @@ export default function useLogin() {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
       })
-      console.log({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-      })
 
       queryClient.setQueryData(["authUser"], {
         _id: data._id,

@@ -3,7 +3,10 @@ import { View, Text, Button, StyleSheet, Pressable, TextInput, Image, FlatList }
 import FontAwesome from '@expo/vector-icons/FontAwesome'
 import useLogout from "../hooks/useLogout"
 import useGetChats from "../hooks/useGetChats"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { ActivityIndicator } from "react-native"
+import instance from "../app/axios"
+import { initSocket, getSocket } from "../socket/socket"
 
 export default function ChatListScreen({ navigation, user }) {
   const formatMessageTime = (timestamp) => {
@@ -40,6 +43,7 @@ export default function ChatListScreen({ navigation, user }) {
 
   const { mutate: logout, isPending } = useLogout()
   const [search, setSearch] = useState('')
+  const queryClient = useQueryClient()
 
   const handleLogout = () => {
     logout()
@@ -61,6 +65,54 @@ export default function ChatListScreen({ navigation, user }) {
     const bTime = new Date(b.latestMessageAt || 0)
     return bTime - aTime
   })
+  useEffect(() => {
+    let isMounted = true;
+
+    const setupSocket = async () => {
+      await initSocket();
+      if (!isMounted) return
+
+      const s = getSocket()
+
+      s.on("messagesRead", ({ chatId, userId }) => {
+        if (userId === user._id) {
+          queryClient.setQueryData(["unreadCounts"], (oldData) => {
+            if (!oldData) return oldData
+            return oldData.map((entry) =>
+              entry.chatId === chatId && entry.user === user._id
+                ? { ...entry, count: 0 }
+                : entry
+            )
+          })
+        }
+      })
+    }
+
+    setupSocket()
+
+    return () => {
+      isMounted = false
+      try {
+        const s = getSocket()
+        s.off("messagesRead")
+      } catch (err) {}
+    }
+  }, [queryClient, user._id])
+
+  const { data: unreadCounts } = useQuery({
+    queryKey: ["unreadCounts"],
+    queryFn: async () => {
+      const res = await instance.get("/chats/unread")
+      console.log(unreadCounts)
+      return res.data
+    },
+  })
+
+  const getUnreadCount = (chatId) => {
+    if (!unreadCounts) return 0
+    const entry = unreadCounts.find((u) => u.chatId === chatId)
+    return entry ? entry.count : 0
+  }
 
   return (
     <View style={styles.container}>
@@ -99,7 +151,7 @@ export default function ChatListScreen({ navigation, user }) {
           data={sortedChats}
           keyExtractor={(item) => item._id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 50, paddingHorizontal: 5, }}
+          contentContainerStyle={{ paddingBottom: 60, paddingHorizontal: 5, }}
           ListEmptyComponent={
             !isLoading && (
               <Text style={{ color: "#fff", textAlign: "center", marginTop: 20 }}>
@@ -118,9 +170,15 @@ export default function ChatListScreen({ navigation, user }) {
                   styles.chatItem,
                   pressed && { backgroundColor: '#1a1a1a' } // overlay color
                 ]}
-                onPress={() =>
+                onPress={() => {
                   navigation.navigate("Chat", { chatId: chat._id })
-                }
+                  queryClient.setQueryData(["unreadCounts"], (oldData) => {
+                    if (!oldData) return oldData
+                    return oldData.map((entry) =>
+                      entry.chatId === chat._id && entry.user === user._id ? { ...entry, count: 0 } : entry
+                    )
+                  })
+                }}
               >
                 <View style={{ width: "17%", justifyContent: "center" }}>
                   <Image
@@ -135,12 +193,12 @@ export default function ChatListScreen({ navigation, user }) {
                       {recipient?.name}
                     </Text>
 
-                    <Text style={styles.chatMessageTime}>
+                    <Text style={ getUnreadCount(chat._id) > 0 ? styles.chatMessageTime2 : styles.chatMessageTime}>
                       {chat.latestMessage &&
                         formatMessageTime(chat.latestMessage.timestamp)}
                     </Text>
                   </View>
-
+                  <View style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '90%', paddingRight: 4}}>
                   <Text style={styles.chatMessageText}>
                     {chat.latestMessage
                       ? chat.latestMessage.content.length > 30
@@ -148,6 +206,12 @@ export default function ChatListScreen({ navigation, user }) {
                         : chat.latestMessage.content
                       : recipient?.phone}
                   </Text>
+                  {getUnreadCount(chat._id) > 0 && (
+                    <View style={{ backgroundColor: '#0d8446', borderRadius: 20, height: 23, width: 23, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                      <Text style={{color: '#fff',}}>{getUnreadCount(chat._id)}</Text>
+                    </View>
+                  )}
+                  </View>
                 </View>
               </Pressable>
             )
@@ -160,11 +224,11 @@ export default function ChatListScreen({ navigation, user }) {
         </Text>
       </Pressable>
 
-      <Button
-        onPress={handleLogout}
-        style={styles.logoutBtn}
-        title={isPending ? "Logging out..." : "Logout"}
-      />
+      <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+        <Text>
+          {isPending ? "Logging out..." : "Logout"}
+        </Text>
+      </Pressable>
       <View style={styles.navigationContainer}>
         <View style={{alignItems: 'center', justifyContent: 'center', display: 'flex', width: '75'}}>
           <Text style={styles.navindividualicon}>
@@ -306,6 +370,12 @@ const styles = StyleSheet.create({
     color: '#9f9f9f',
     marginTop: 3,
   },
+  chatMessageTime2: {
+    fontSize: 14,
+    color: '#0d8446',
+    marginTop: 3,
+    fontWeight: 'bold',
+  },
   recipientEmail: {
     marginTop: 0,
     fontSize: 15,
@@ -319,6 +389,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 110,
     right: 20,
+    height: 60,
+    width: 60,
+    borderRadius: 10,
+    backgroundColor: '#0d8446',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 10px 20px #00000033',
+  },
+  logoutBtn: {
+    position: 'absolute',
+    bottom: 110,
+    left: 20,
     height: 60,
     width: 60,
     borderRadius: 10,

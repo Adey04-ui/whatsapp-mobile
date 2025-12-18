@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
   View,
   Text,
@@ -16,13 +16,19 @@ import * as ImagePicker from "expo-image-picker"
 import useRegister from "../hooks/useRegister"
 import Toast from "react-native-toast-message"
 import logo from '../assets/logo.png'
+import { io } from "socket.io-client"
 
 function RegisterScreen({ navigation }) {
+  const socketRef = useRef(null)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [phone, setPhone] = useState("")
   const [profilePic, setProfilePic] = useState(null)
+  const [emailTimeout, setEmailTimeout] = useState(null)
+  const [phoneTimeout, setPhoneTimeout] = useState(null)
+  const [emailStatus, setEmailStatus] = useState(null)
+  const [phoneStatus, setPhoneStatus] = useState(null)
 
   const { mutate: register, isPending } = useRegister()
 
@@ -42,6 +48,29 @@ function RegisterScreen({ navigation }) {
       setProfilePic(result.assets[0])
     }
   }
+
+  useEffect(() => {
+    socketRef.current = io('https://mock-backend-mjwh.onrender.com/', {
+      transports: ["polling", "websocket"],
+      forceNew: true,
+    })
+
+    socketRef.current.on("connect", () => {
+      console.log("Socket connected:", socketRef.current.id)
+    })
+
+    socketRef.current.on('emailStatus', (data) => {
+      setEmailStatus(data)
+    })
+
+    socketRef.current.on('phoneStatus', (data) => {
+      setPhoneStatus(data)
+    })
+
+    return () => {
+      socketRef.current.disconnect()
+    }
+  }, [])
 
   const handleRegister = () => {
     const formData = new FormData()
@@ -68,6 +97,46 @@ function RegisterScreen({ navigation }) {
       },
     })
   }
+
+  const handleEmailChange = (value) => {
+    setEmail(value)
+
+    if (emailTimeout) clearTimeout(emailTimeout)
+
+    if (!value.trim()) {
+      setEmailStatus(null)
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      if (value && value.includes('@') && value.includes('.')) {
+        socketRef.current.emit('checkEmail', value)
+      }
+    }, 600)
+
+    setEmailTimeout(timeout)
+  }
+
+  const handlePhoneChange = (value) => {
+    setPhone(value)
+
+    if (phoneTimeout) clearTimeout(phoneTimeout)
+
+    if (!value.trim()) {
+      setPhoneStatus(null)
+      return
+    }
+
+    const timeout = setTimeout(() => {
+        socketRef.current.emit('checkPhone', value)
+    }, 600)
+
+    setPhoneTimeout(timeout)
+  }
+  const canSubmit =
+  name &&
+  emailStatus?.available &&
+  phoneStatus?.available
 
   return (
     <KeyboardAvoidingView
@@ -130,11 +199,20 @@ function RegisterScreen({ navigation }) {
                 placeholder="Email"
                 style={styles.input}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={handleEmailChange}
                 autoCapitalize="none"
                 placeholderTextColor="#9f9f9f"
                 cursorColor="#0d8446"
               />
+              {emailStatus && (
+                <Text
+                 style={emailStatus.available ? {color: '#0d8446', fontSize: 16,} : {color: 'red', fontSize: 16,}}
+                >
+                  <FontAwesome name="info-circle" size={17} />
+                  &nbsp;
+                  {emailStatus.message}
+                </Text>
+              )}
             </View>
 
             <View>
@@ -145,11 +223,20 @@ function RegisterScreen({ navigation }) {
                 placeholder="Phone"
                 style={styles.input}
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={handlePhoneChange}
                 autoCapitalize="none"
                 placeholderTextColor="#9f9f9f"
                 cursorColor="#0d8446"
               />
+              {phoneStatus && (
+                <Text
+                 style={phoneStatus.available ? {color: '#0d8446', fontSize: 16,} : {color: 'red', fontSize: 14,}}
+                >
+                  <FontAwesome name="info-circle" size={15} />
+                  &nbsp;
+                  {phoneStatus.message}
+                </Text>
+              )}
             </View>
 
             <View>
@@ -167,7 +254,10 @@ function RegisterScreen({ navigation }) {
               />
             </View>
 
-            <TouchableOpacity style={styles.button} onPress={handleRegister}>
+            <TouchableOpacity  
+             onPress={handleRegister}
+             style={styles.button}
+            >
               <Text style={styles.buttonText}>
                 {isPending ? (
                   <ActivityIndicator size="small" color="#fff" />

@@ -90,6 +90,7 @@ function LoginScreen({navigation, setUser}) {
       flex: 1,
       display: 'flex',
       justifyContent: 'center',
+      alignItems: 'center',
       backgroundColor: '#202020',
       paddingHorizontal: 25,
       color: '#9f9f9f',
