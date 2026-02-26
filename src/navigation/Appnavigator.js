@@ -38,8 +38,10 @@ export default function AppNavigator() {
               {() => <BottomTabs user={user} />}
             </Stack.Screen>
 
-            <Stack.Screen name="Chat" component={ChatScreen} />
-            
+            <Stack.Screen name="Chat">
+              {props => <ChatScreen {...props} user={user} />}
+            </Stack.Screen>
+
             <Stack.Screen name="NewChat">
               {props => <NewChatScreen {...props} user={user} />}
             </Stack.Screen>

@@ -7,12 +7,7 @@ const useAuthCheck = () => {
 
   const fetchUser = async () => {
     const token = await getAccessToken()
-    if (!token) {
-      // No token → logged out
-      delete axios.defaults.headers.common["Authorization"]
-      queryClient.setQueryData(["authUser"], null)
-      return null
-    }
+    if (!token) return null
 
     try {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
@@ -20,7 +15,6 @@ const useAuthCheck = () => {
       return res.data
     } catch (err) {
       if (err.response?.status === 401) {
-        // Try refresh
         return await refreshTokens()
       }
       throw err

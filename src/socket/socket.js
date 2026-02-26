@@ -1,16 +1,18 @@
-// socket.js
+// socket/socket.js
 import { io } from "socket.io-client"
 import { getAccessToken } from "../app/tokenStore"
 
 let socket = null
 
 export const initSocket = async () => {
-  if (socket && socket.connected) return socket
+  if (socket) return socket
 
-  const token = await getAccessToken() 
+  const token = await getAccessToken()
+
   socket = io("https://mock-backend-mjwh.onrender.com", {
     transports: ["websocket"],
     auth: { token },
+    autoConnect: true,
   })
 
   socket.on("connect", () => {
@@ -24,9 +26,4 @@ export const initSocket = async () => {
   return socket
 }
 
-export const getSocket = () => {
-  if (!socket) {
-    throw new Error("Socket not initialized yet! Call initSocket first.")
-  }
-  return socket
-}
+export const getSocket = () => socket

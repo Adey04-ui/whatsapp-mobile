@@ -10,7 +10,7 @@ function Users({users, isLoading, navigation}) {
     setOpeningchat(userId)
     openChat(userId, {
       onSuccess: (chat) => {
-        navigation.navigate("Chat", {chatId: chat._id})
+        navigation.navigate("Chat", {chat: chat})
       },
       onError: () => {
         console.log("ERROR opening chat:", err?.response?.data || err.message)

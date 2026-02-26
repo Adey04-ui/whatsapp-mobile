@@ -8,8 +8,9 @@ import StatusScreen from "../screens/StatusScreen"
 import CallsScreen from "../screens/CallsScreen"
 import { BlurView } from "expo-blur"
 import { Platform } from "react-native"
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs"
 
-const Tab = createBottomTabNavigator()
+const Tab = createMaterialTopTabNavigator()
 
 export default function BottomTabs({ user }) {
   return (
@@ -23,6 +24,7 @@ export default function BottomTabs({ user }) {
         },
         tabBarActiveTintColor: "#0d8446",
         tabBarInactiveTintColor: "#aaa",
+        tabBarIndicatorStyle: { backgroundColor: "transparent" },
         tabBarLabelStyle: {
           fontSize: 13,
           marginBottom: -5,

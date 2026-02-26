@@ -6,8 +6,9 @@ import useGetChats from "../hooks/useGetChats"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { ActivityIndicator } from "react-native"
 import instance from "../app/axios"
-import { initSocket, getSocket } from "../socket/socket"
+import { getSocket } from "../socket/socket"
 import { useNavigation } from "@react-navigation/native"
+import useMarkMessagesRead from "../hooks/useMarkMessagesRead"
 
 export default function ChatListScreen({ user }) {
   const navigation = useNavigation()
@@ -50,6 +51,7 @@ export default function ChatListScreen({ user }) {
   const handleLogout = () => {
     logout()
   }
+  
 
   const filteredChats = (chats || []).filter((chat) => {
     const otherUsers = chat.users.filter((u) => u._id !== user._id)
@@ -67,45 +69,49 @@ export default function ChatListScreen({ user }) {
     const bTime = new Date(b.latestMessageAt || 0)
     return bTime - aTime
   })
+
+
   useEffect(() => {
-    let isMounted = true;
+    const s = getSocket()
+    if (!s) return
 
-    const setupSocket = async () => {
-      await initSocket();
-      if (!isMounted) return
-
-      const s = getSocket()
-
-      s.on("messagesRead", ({ chatId, userId }) => {
-        if (userId === user._id) {
-          queryClient.setQueryData(["unreadCounts"], (oldData) => {
-            if (!oldData) return oldData
-            return oldData.map((entry) =>
-              entry.chatId === chatId && entry.user === user._id
-                ? { ...entry, count: 0 }
-                : entry
-            )
-          })
-        }
-      })
+    const handleMessagesRead = ({ chatId, userId }) => {
+      if (userId === user._id) {
+        queryClient.setQueryData(["unreadCounts"], (oldData) => {
+          if (!oldData) return oldData
+          return oldData.map((entry) =>
+            entry.chatId === chatId && entry.user === user._id
+              ? { ...entry, count: 0 }
+              : entry
+          )
+        })
+      }
     }
 
-    setupSocket()
+    s.on("messagesRead", handleMessagesRead)
 
     return () => {
-      isMounted = false
-      try {
-        const s = getSocket()
-        s.off("messagesRead")
-      } catch (err) {}
+      s.off("messagesRead", handleMessagesRead)
     }
   }, [queryClient, user._id])
+
+  useEffect(() => {
+    const s = getSocket()
+    if (!s) return
+
+    const handleMessageReceived = () => {
+      queryClient.invalidateQueries({ queryKey: ["getChats"] })
+    }
+
+    s.on("messageReceived", handleMessageReceived)
+    return () => s.off("messageReceived", handleMessageReceived)
+  }, [queryClient])
+
 
   const { data: unreadCounts } = useQuery({
     queryKey: ["unreadCounts"],
     queryFn: async () => {
       const res = await instance.get("/chats/unread")
-      console.log(unreadCounts)
       return res.data
     },
   })
@@ -173,7 +179,7 @@ export default function ChatListScreen({ user }) {
                   pressed && { backgroundColor: '#1a1a1a' } // overlay color
                 ]}
                 onPress={() => {
-                  navigation.navigate("Chat", { chatId: chat._id })
+                  navigation.navigate("Chat", { chat: chat })
                   queryClient.setQueryData(["unreadCounts"], (oldData) => {
                     if (!oldData) return oldData
                     return oldData.map((entry) =>

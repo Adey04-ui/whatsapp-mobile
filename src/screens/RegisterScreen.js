@@ -67,6 +67,10 @@ function RegisterScreen({ navigation }) {
       setPhoneStatus(data)
     })
 
+    socketRef.current.on("disconnect", () => {
+      console.log("Socket disconnected:", socketRef.current.id)
+    })
+
     return () => {
       socketRef.current.disconnect()
     }
@@ -93,7 +97,7 @@ function RegisterScreen({ navigation }) {
           type: "success",
           text2: `Welcome ${name}`,
         })
-        navigation.replace("ChatList")
+        navigation.replace?.("ChatList")
       },
     })
   }
