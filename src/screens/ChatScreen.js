@@ -5,11 +5,10 @@ import FontAwesome from '@expo/vector-icons/FontAwesome'
 import { getSocket } from "../socket/socket"
 import { useQueryClient } from "@tanstack/react-query"
 import useGetMessages from "../hooks/useGetMessages"
-import { FiAlertCircle, FiCheck, FiClock } from "react-icons/fi"
-import { RiCheckDoubleLine, RiTimeLine } from "react-icons/ri"
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { KeyboardAvoidingView } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { useSendMessage } from "../hooks/useSendMessage"
 
 function formatDate(dateString) {
   const date = new Date(dateString)
@@ -46,13 +45,17 @@ function groupMessagesByDate(messages) {
 
 export default function ChatScreen({ route, navigation, user }) {
   const { chat } = route.params
+  const chatId = chat._id
   const queryClient = useQueryClient()
 
-  const [message, setMessage] = useState('')
+  const [content, setContent] = useState('')
 
   const [keyboardVisible, setKeyboardVisible] = useState(false)
   const flatListRef = useRef(null)
   const [showScrollButton, setShowScrollButton] = useState(false)
+
+  const s = getSocket()
+  if (!s) return
 
   useEffect(() => {
     const show = Platform.OS === 'ios'
@@ -87,68 +90,37 @@ export default function ChatScreen({ route, navigation, user }) {
     isFetchingNextPage,
   } = useGetMessages(chats._id)
 
+  const { mutate: sendMessage } = useSendMessage()
+
 
   const allMessages = React.useMemo(() => {
-    return data?.pages.flatMap(page => page.messages) || []
+    const msgs = data?.pages.flatMap(page => page.messages) || []
+    return msgs
   }, [data])
 
-  console.log("messages data:", allMessages)
 
   const prevAllMessagesRef = useRef([])
 
   useEffect(() => {
-    const prevLength = prevAllMessagesRef.current.length
-    const newLength = allMessages.length
+    if (!flatListRef.current || allMessages.length === 0) return
 
-    // Only scroll to bottom if messages increased at the bottom (new messages)
-    if (newLength > prevLength) {
-      flatListRef.current?.scrollToEnd({ animated: true })
-    }
-
-    prevAllMessagesRef.current = allMessages
-  }, [allMessages])
-
-  useEffect(() => {
     const timer = setTimeout(() => {
-      if (flatListRef.current && allMessages.length > 0) {
-        flatListRef.current.scrollToEnd({ animated: false })
-      }
-    }, 100)
-
-    return () => clearTimeout(timer)
-  }, [allMessages])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: false })
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true }) // 0 = bottom in inverted
     }, 150)
 
     return () => clearTimeout(timer)
-  }, [allMessages])
+  }, [allMessages, keyboardVisible])
+
+  // Pagination: load older when near top (in inverted = end of list)
+  const handleEndReached = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }
 
   const prevMessagesLengthRef = useRef(allMessages.length)
 
   useEffect(() => {
-    const newLength = allMessages.length
-    if (newLength > prevMessagesLengthRef.current && hasNextPage !== undefined) {
-    }
-    prevMessagesLengthRef.current = newLength
-  }, [allMessages.length, hasNextPage])
-
-  useEffect(() => {
-  if (keyboardVisible && flatListRef.current && allMessages.length > 0) {
-    const timer = setTimeout(() => {
-      flatListRef.current.scrollToEnd({ animated: false })
-    }, 150) 
-
-    return () => clearTimeout(timer)
-  }
-}, [keyboardVisible, allMessages.length])
-
-
-  useEffect(() => {
-    const s = getSocket()
-    if (!s) return
 
     const userId = user._id
     const handleUserStatusChange = ({ userId, isOnline, lastSeen }) => {
@@ -170,23 +142,216 @@ export default function ChatScreen({ route, navigation, user }) {
     return () => s.off("userStatusChanged", handleUserStatusChange)
   }, [queryClient, recipient._id])
 
+
+  useEffect(() => {
+    const handleMessageReceived = (message) => {
+      const incomingChatId =
+        message?.chatId?._id || message?.chat?._id || message?.chatId
+      const isCurrentChat = incomingChatId === chatId
+
+      if (isCurrentChat) {
+        queryClient.setQueryData(["messages", chatId], (oldData) => {
+          if (!oldData) return { pages: [{ messages: [message] }] }
+          const updated = {
+            ...oldData,
+            pages: oldData.pages.map((p, i) =>
+              i === oldData.pages.length - 1
+                ? { ...p, messages: [message, ...p.messages] }
+                : p
+            ),
+          }
+          return updated
+        })
+      } else {
+        if (document.hidden || !isCurrentChat) {
+          showChatNotification(message)
+        }
+      }
+      queryClient.invalidateQueries(["getChats"], { refetchType: "active" })
+    }
+
+    s.on("messageReceived", handleMessageReceived)
+    return () => s.off("messageReceived", handleMessageReceived)
+  }, [chatId])
+
+
+  function handleSendMessage() {
+    if (!content.trim()) return toast.error("Message cannot be empty")
+
+    const tempId = `temp-${Date.now()}`
+    const tempMessage = {
+      _id: tempId,
+      chatId,
+      content,
+      sender: user,
+      timestamp: new Date().toISOString(),
+      readBy: [],
+      deliveredTo: [],
+      status: "sending",
+    }
+
+    queryClient.setQueryData(["messages", chatId], (oldData) => {
+      if (!oldData) return { pages: [{ messages: [tempMessage] }] }
+      const updated = {
+        ...oldData,
+        pages: oldData.pages.map((p, i) =>
+          i === oldData.pages.length - 1
+            ? { ...p, messages: [tempMessage, ...p.messages] }
+            : p
+        ),
+      }
+      return updated
+    })
+
+    queryClient.setQueryData(["getChats"], (oldChats) => {
+      if (!oldChats) return oldChats
+
+      return oldChats.map((chat) => {
+        if (chat._id === chatId) {
+          return {
+            ...chat,
+            latestMessage: {
+              content: content,
+              sender: user?._id,
+              timestamp: new Date().toISOString(),
+              status: "sending",
+            },
+            latestMessageAt: new Date().toISOString(),
+          }
+        }
+        return chat
+      })
+    })
+
+    setContent("")
+
+    sendMessage({ chatId, content, recipient }, {
+      onSuccess: (newMessage) => {
+        queryClient.setQueryData(["messages", chatId], (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              messages: page.messages.map((msg) =>
+                msg._id === tempId ? { ...newMessage, status: "sent" } : msg
+              ),
+            })),
+          }
+        })
+
+        s.emit("messageReceived", newMessage)
+      },
+      onError: () => {
+        queryClient.setQueryData(["messages", chatId], (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              messages: page.messages.map((msg) =>
+                msg._id === tempId ? { ...msg, status: "failed" } : msg
+              ),
+            })),
+          }
+        })
+
+        queryClient.setQueryData(["getChats"], (oldChats) => {
+          if (!oldChats) return oldChats
+
+          return oldChats.map((chat) => {
+            if (chat._id === chatId) {
+              return {
+                ...chat,
+                latestMessage: {
+                  content: content,
+                  sender: user,
+                  timestamp: new Date().toISOString(),
+                  status: "failed",
+                },
+                latestMessageAt: new Date().toISOString(),
+              }
+            }
+            return chat
+          })
+        })
+      }
+    })
+  }
+
+  useEffect(() => {
+    const handleMessageDelivered = ({ messageId, deliveredTo }) => {
+      queryClient.invalidateQueries(["getChats"], { refetchType: "active" })
+      queryClient.setQueryData(["messages", chatId], (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            messages: page.messages.map((msg) =>
+              msg._id === messageId
+                ? { ...msg, deliveredTo, status: "delivered" }
+                : msg
+            ),
+          })),
+        }
+      })
+    }
+
+    const handleMessagesRead = ({ chatId, userId }) => {
+      queryClient.invalidateQueries(["getChats"], { refetchType: "active" })
+      queryClient.setQueryData(["messages", chatId], (oldData) => {
+        if (!oldData) return oldData
+        const updated = {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            messages: page.messages.map((m) => {
+              const mChatId = m.chatId?._id || m.chatId
+              if (!mChatId) return m
+              if (mChatId.toString() !== chatId.toString()) return m
+
+              const readBy = m.readBy || []
+              if (!readBy.some(id => id.toString() === userId.toString())) {
+                return { ...m, readBy: [...readBy, userId], status: 'read' }
+              }
+              return m
+            }),
+          })),
+        }
+        return updated
+      })
+
+    }
+
+    s.on("messageDelivered", handleMessageDelivered)
+    s.on("messagesRead", handleMessagesRead)
+    return () => {
+      s.off("messageDelivered", handleMessageDelivered)
+      s.off("messagesRead", handleMessagesRead)
+    }
+  }, [chatId, queryClient])
+
+
   const groupedMessages = groupMessagesByDate(allMessages)
 
   const flatData = React.useMemo(() => {
     const items = []
 
-    Object.keys(groupedMessages).forEach((dateKey) => {
-      items.push({
-        type: "date",
-        id: `date-${dateKey}`,
-        date: groupedMessages[dateKey][0].timestamp
-      })
+    const dateKeys = Object.keys(groupedMessages)
 
+    dateKeys.forEach((dateKey) => {
       groupedMessages[dateKey].forEach((msg) => {
         items.push({
           type: "message",
           ...msg
         })
+      })
+
+      items.push({
+        type: "date",
+        id: `date-${dateKey}`,
+        date: groupedMessages[dateKey][0].timestamp
       })
     })
 
@@ -246,7 +411,7 @@ export default function ChatScreen({ route, navigation, user }) {
               </View>
             </View>
             <Text>
-              <FontAwesome name="ellipsis-v" size={26} color="#fff" />
+              <MaterialCommunityIcons name="dots-vertical" size={26} color="#fff" />
             </Text>
           </View>
           <View style={{ flex: 1, }}>
@@ -255,7 +420,7 @@ export default function ChatScreen({ route, navigation, user }) {
             ) : (
               <FlatList
                 ref={flatListRef}
-                inverted={false}
+                inverted={true}
                 data={flatData}
                 style={{ flex: 1 }}
                 keyExtractor={(item) =>
@@ -268,16 +433,14 @@ export default function ChatScreen({ route, navigation, user }) {
                   const scrollY = contentOffset.y
                   const totalHeight = contentSize.height
                   const viewportHeight = layoutMeasurement.height
-                  const distanceFromTop = scrollY
-                  const distanceFromBottom =
-                    contentSize.height - contentOffset.y - layoutMeasurement.height
+                  const distanceFromBottom = scrollY
+                  contentSize.height - contentOffset.y - layoutMeasurement.height
                   setShowScrollButton(distanceFromBottom > 150)
-                  if (distanceFromTop < 400 && hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage()
-                  }
                 }}
                 scrollEventThrottle={16}
-                ListHeaderComponent={
+                onEndReached={handleEndReached}
+                onEndReachedThreshold={0.3}
+                ListFooterComponent={
                   isFetchingNextPage ? (
                     <View style={{ padding: 20, alignItems: 'center' }}>
                       <ActivityIndicator size="small" color="#0d8446" />
@@ -310,7 +473,7 @@ export default function ChatScreen({ route, navigation, user }) {
                   return (
                     <View style={isMine ? styles.messageContainerSent : styles.messageContainerReceived}>
                       <View>
-                        <Text style={{ color: '#fff', fontSize: 17, marginRight: 40 }}>
+                        <Text style={{ color: '#fff', fontSize: 17, marginRight: 50 }}>
                           {item.content}
                         </Text>
                       </View>
@@ -345,18 +508,36 @@ export default function ChatScreen({ route, navigation, user }) {
                 }}
               />
             )}
+
+            {showScrollButton && (
+              <Pressable
+                onPress={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
+                style={{
+                  position: 'absolute',
+                  bottom: 90,
+                  right: 20,
+                  backgroundColor: '#343434',
+                  padding: 6,
+                  borderRadius: 30,
+                  elevation: 5,
+                }}
+              >
+                <Feather name="chevron-down" size={16} color="#fff" />
+              </Pressable>
+            )}
+
             <View style={styles.inputContainer}>
               <TextInput
                 placeholder='Type a message ...'
                 style={styles.input}
-                value={message}
+                value={content}
                 placeholderTextColor={'#9f9f9f'}
-                onChangeText={setMessage}
+                onChangeText={setContent}
                 autoCapitalize='none'
                 cursorColor="#0d8446"
                 multiline
               />
-              <Pressable style={styles.sendButton}>
+              <Pressable style={styles.sendButton} onPress={handleSendMessage}>
                 <Feather name="send" size={20} color="#fff" />
               </Pressable>
             </View>
@@ -418,6 +599,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     marginTop: 10,
+    maxWidth: '80%',
   },
   messageContainerReceived: {
     alignSelf: 'flex-start',
@@ -434,6 +616,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     marginTop: 10,
+    maxWidth: '80%',
   },
   inputContainer: {
     flexDirection: 'row',

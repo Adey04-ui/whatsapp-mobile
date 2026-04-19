@@ -9,10 +9,13 @@ export const initSocket = async () => {
 
   const token = await getAccessToken()
 
+  console.log("[SOCKET INIT] Token being sent:", token ? token.substring(0, 20) + "..." : "NO TOKEN")
+
   socket = io("https://mock-backend-mjwh.onrender.com", {
     transports: ["websocket"],
     auth: { token },
     autoConnect: true,
+    query: { client: "mobile" }
   })
 
   socket.on("connect", () => {

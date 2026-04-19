@@ -5,7 +5,7 @@ import instance from "../app/axios"
 
 const fetchMessages = async ({ pageParam = 1, queryKey }) => {
   const [_key, chatId] = queryKey
-  const { data } = await instance.get(`/messages/${chatId}?page=${pageParam}&limit=20`, {
+  const { data } = await instance.get(`/messages/${chatId}?page=${pageParam}&limit=20&sort=desc`, {
     withCredentials: true,
   })
   return data 

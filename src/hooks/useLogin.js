@@ -15,6 +15,7 @@ export default function useLogin() {
     mutationFn: loginRequest,
 
     onSuccess: async (data) => {
+      console.log("[LOGIN] accessToken before store:", data.accessToken?.substring(0, 30))
       await storeTokens({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,

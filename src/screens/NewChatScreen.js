@@ -47,6 +47,8 @@ export default function NewChatScreen({ navigation, user }) {
             value={search} 
             onChangeText={setSearch}
             cursorColor="#0d8446"
+            returnKeyType="search"
+            autoCapitalize="none"
           />
         </View>
       </View>
@@ -59,7 +61,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
-    paddingTop: 40,
+    paddingTop: 0,
   },
   title: {
     fontSize: 22,

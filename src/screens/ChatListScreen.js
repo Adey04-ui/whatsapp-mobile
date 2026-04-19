@@ -9,6 +9,7 @@ import instance from "../app/axios"
 import { getSocket } from "../socket/socket"
 import { useNavigation } from "@react-navigation/native"
 import useMarkMessagesRead from "../hooks/useMarkMessagesRead"
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons"
 
 export default function ChatListScreen({ user }) {
   const navigation = useNavigation()
@@ -100,7 +101,7 @@ export default function ChatListScreen({ user }) {
     if (!s) return
 
     const handleMessageReceived = () => {
-      queryClient.invalidateQueries({ queryKey: ["getChats"] })
+      queryClient.invalidateQueries(["getChats"], {refetchType: 'active'} )
     }
 
     s.on("messageReceived", handleMessageReceived)
@@ -131,7 +132,7 @@ export default function ChatListScreen({ user }) {
             <FontAwesome name='camera' size={26} color='#fff' style={{marginRight: 5,}} />
           </Text>
           <Text>
-            <FontAwesome name='ellipsis-v' size={26} color='#fff' />
+            <MaterialCommunityIcons name='dots-vertical' size={26} color='#fff' />
           </Text>
         </View>
       </View>
@@ -146,6 +147,8 @@ export default function ChatListScreen({ user }) {
           onChangeText={setSearch}
           placeholderTextColor="#9f9f9f"
           cursorColor="#0d8446"
+          returnKeyType="search"
+          autoCapitalize="none"
         />
       </View>
       <View style={{ flex: 1, marginTop: 10, }}>
@@ -244,7 +247,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000000",
-    paddingTop: 60,
+    paddingTop: 25,
   },
   title: {
     fontSize: 27,
